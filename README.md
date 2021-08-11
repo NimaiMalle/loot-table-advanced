@@ -21,9 +21,9 @@ Loot Tables have an ID, and a list of entries.
 
 This simple, one-item Loot Table will always produce "1 coin". The default value for all of the numeric properties is 1.
 
-| ID     | Min | Max | Step | Group | Weight |
-| ------ | --- | --- | ---- | ----- | ------ |
-| `coin` | 1   | 1   | 1    | 1     | 1      |
+| ID     | Weight | Min | Max | Step | Group |
+| ------ | ------ | --- | --- | ---- | ----- |
+| `coin` | 1      | 1   | 1   | 1    | 1     |
 
 ### JavaScript
 
@@ -47,12 +47,12 @@ Group 1 has a total weight of 14, so Group 1 has a 10-in-14 chance of producing 
 Group 2 has a total weight of 10, and since **cloth** and null both have a weight of 5, there's a 50/50 chance that Group 2 will produce nothing. If the cloth row is selected, it will produce 40, 45, or 50 units of cloth.
 Overall, this Loot Table may produce nothing at all, some coin, some cloth, or some of both.
 
-| ID      | Min | Max | Step | Group | Weight |
-| ------- | --- | --- | ---- | ----- | ------ |
-| `coin`  | 50  | 100 | 25   | 1     | 10     |
-| `null`  | 0   | 0   | 1    | 1     | 4      |
-| `cloth` | 40  | 50  | 5    | 2     | 5      |
-| `null`  | 0   | 0   | 1    | 2     | 5      |
+| ID      | Weight | Min | Max | Step | Group |
+| ------- | ------ | --- | --- | ---- | ----- |
+| `coin`  | 10     | 50  | 100 | 25   | 1     |
+| `null`  | 4      | 0   | 0   | 1    | 1     |
+| `cloth` | 5      | 40  | 50  | 5    | 2     |
+| `null`  | 5      | 0   | 0   | 1    | 2     |
 
 The code examples show the use of the `LootTableEntry` helper function, which performs error checking on the inputs and returns a valid object.
 
@@ -89,19 +89,19 @@ To differentiate Item ID from Loot Table ID, an `@` character is used to prefix 
 
 ### `gems`
 
-| ID         | Min | Max | Step | Group | Weight |
-| ---------- | --- | --- | ---- | ----- | ------ |
-| `pearl`    | 5   | 10  | 1    | 1     | 1      |
-| `garnet`   | 3   | 12  | 1    | 1     | 1      |
-| `ruby`     | 4   | 9   | 1    | 1     | 1      |
-| `sapphire` | 1   | 2   | 1    | 1     | 1      |
+| ID         | Weight | Min | Max | Step | Group |
+| ---------- | ------ | --- | --- | ---- | ----- |
+| `pearl`    | 1      | 5   | 10  | 1    | 1     |
+| `garnet`   | 1      | 3   | 12  | 1    | 1     |
+| `ruby`     | 1      | 4   | 9   | 1    | 1     |
+| `sapphire` | 1      | 1   | 2   | 1    | 1     |
 
 ### `treasure`
 
-| ID      | Min | Max | Step | Group | Weight |
-| ------- | --- | --- | ---- | ----- | ------ |
-| `@gems` | 0   | 2   | 1    | 1     | 1      |
-| `gold`  | 15  | 20  | 1    | 2     | 1      |
+| ID      | Weight | Min | Max | Step | Group |
+| ------- | ------ | --- | --- | ---- | ----- |
+| `@gems` | 1      | 0   | 2   | 1    | 1     |
+| `gold`  | 1      | 15  | 20  | 1    | 2     |
 
 The `treasure` Loot Table will always give you 15 to 20 gold, and zero, one, or two results from the `gems` table.
 
@@ -162,12 +162,12 @@ let loot = GetLoot(treasure, 1, ResolveHelper)
 
 To simulate something like, "draw two cards", where you can't get the same item twice, the Loot Table Advanced `GetLoot` allows the caller to specify a `count`. The count defaults to 1. Pass in a count of 2 or more, and the Loot Table will be processed multiple times, each time decrementing the Weight of the row selected.
 
-| ID    | Min | Max | Step | Group | Weight |
-| ----- | --- | --- | ---- | ----- | ------ |
-| ace   | 1   | 1   | 1    | 1     | 1      |
-| king  | 1   | 1   | 1    | 1     | 1      |
-| queen | 1   | 1   | 1    | 1     | 1      |
-| jack  | 1   | 1   | 1    | 1     | 1      |
+| ID    | Weight | Min | Max | Step | Group |
+| ----- | ------ | --- | --- | ---- | ----- |
+| ace   | 1      | 1   | 1   | 1    | 1     |
+| king  | 1      | 1   | 1   | 1    | 1     |
+| queen | 1      | 1   | 1   | 1    | 1     |
+| jack  | 1      | 1   | 1   | 1    | 1     |
 
 `GetLoot('cards',2)` will get two distinct cards, since the Weight of each card in the table is 1. Within the one call, each time a random row is selected, it's Weight is decremented, preventing it from being selected again.
 `GetLoot('cards_chips')` will yield between 10 and 50 chips, in multiples of 5, and 2 unique cards from the cards table.
