@@ -42,9 +42,9 @@ let loot = GetLoot(simple)
 # Groups, nulls, and Quantities Example
 
 This more complex Loot Table has two Groups.
-One row will be chosen per Group to produce. Rows with a null ID produce nothing.
-Group 1 has a total weight of 14, so Group 1 has a 10-in-14 chance of producing from the **coin** row. If the coin row is selected, it will produce 50, 75, or 100 units of coin, due to how Min, Max, and Step are specified.
-Group 2 has a total weight of 10, and since **cloth** and null both have a weight of 5, there's a 50/50 chance that Group 2 will produce nothing. If the cloth row is selected, it will produce 40, 45, or 50 units of cloth.
+One entry will be chosen per Group to produce. Entries with a null ID produce nothing.
+Group 1 has a total weight of 14, so Group 1 has a 10-in-14 chance of producing from the **coin** entry. If the coin entry is selected, it will produce 50, 75, or 100 units of coin, due to how Min, Max, and Step are specified.
+Group 2 has a total weight of 10, and since **cloth** and null both have a weight of 5, there's a 50/50 chance that Group 2 will produce nothing. If the cloth entry is selected, it will produce 40, 45, or 50 units of cloth.
 Overall, this Loot Table may produce nothing at all, some coin, some cloth, or some of both.
 
 | ID      | Weight | Min | Max | Step | Group |
@@ -160,7 +160,7 @@ let loot = GetLoot(treasure, 1, ResolveHelper)
 
 # Multiple Items Without Replacement
 
-To simulate something like, "draw two cards", where you can't get the same item twice, the Loot Table Advanced `GetLoot` allows the caller to specify a `count`. The count defaults to 1. Pass in a count of 2 or more, and the Loot Table will be processed multiple times, each time decrementing the Weight of the row selected.
+To simulate something like, "draw two cards", where you can't get the same item twice, the Loot Table Advanced `GetLoot` allows the caller to specify a `count`. The count defaults to 1. Pass in a count of 2 or more, and the Loot Table will be processed multiple times, each time decrementing the Weight of the entry selected.
 
 | ID    | Weight | Min | Max | Step | Group |
 | ----- | ------ | --- | --- | ---- | ----- |
@@ -169,7 +169,7 @@ To simulate something like, "draw two cards", where you can't get the same item 
 | queen | 1      | 1   | 1   | 1    | 1     |
 | jack  | 1      | 1   | 1   | 1    | 1     |
 
-`GetLoot('cards',2)` will get two distinct cards, since the Weight of each card in the table is 1. Within the one call, each time a random row is selected, it's Weight is decremented, preventing it from being selected again.
+`GetLoot('cards',2)` will get two distinct cards, since the Weight of each card in the table is 1. Within the one call, each time a random entry is selected, it's Weight is decremented, preventing it from being selected again.
 `GetLoot('cards_chips')` will yield between 10 and 50 chips, in multiples of 5, and 2 unique cards from the cards table.
 
 ### JavaScript
