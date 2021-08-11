@@ -7,7 +7,7 @@ export interface ILootTableEntry {
   group: number
 }
 
-export type LootTable = Array<ILootTableEntry>
+export type LootTable = Array<Partial<ILootTableEntry>>
 
 export interface ILootItem {
   id: string | null
@@ -75,6 +75,27 @@ export function LootTableEntry(
   return { id, min, max, step, group, weight }
 }
 
+const loot_defaults: ILootTableEntry = {
+  id: null,
+  weight: 1,
+  min: 1,
+  max: 1,
+  step: 1,
+  group: 1,
+}
+
+function FillInLootEntryDefaults(
+  entry: Partial<ILootTableEntry>
+): ILootTableEntry {
+  if (entry.id === undefined) entry.id = loot_defaults.id
+  if (entry.weight === undefined) entry.weight = loot_defaults.weight
+  if (entry.min === undefined) entry.min = loot_defaults.min
+  if (entry.max === undefined) entry.max = loot_defaults.max
+  if (entry.step === undefined) entry.step = loot_defaults.step
+  if (entry.group === undefined) entry.group = loot_defaults.group
+  return entry as ILootTableEntry
+}
+
 export function GetLoot(
   table: LootTable,
   count: number = 1,
@@ -90,7 +111,9 @@ export function GetLoot(
   table.map((e) => groups.add(e.group))
   for (let pull = 0; pull < count; ++pull) {
     for (let groupID of groups) {
-      const entries = table.filter((e) => e.group === groupID)
+      const entries = table
+        .filter((e) => e.group === groupID)
+        .map(FillInLootEntryDefaults)
       const totalWeight = entries
         .map((e) => e.weight)
         .reduce((a, b) => a + b, 0)
@@ -109,7 +132,9 @@ export function GetLoot(
       }
       if (entry === null)
         throw new Error(`No loot table row could be selected.`)
-      const range = Math.floor((entry.max - entry.min + 1) / entry.step)
+      const range = Math.floor(
+        (entry.max - entry.min + entry.step) / entry.step
+      )
       let quantity = entry.min + Math.floor(Math.random() * range) * entry.step
       if (quantity > 0) {
         if (count != 1) {

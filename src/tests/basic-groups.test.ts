@@ -10,7 +10,7 @@ import { rnd } from './random-table'
 mockRandomForEach(rnd)
 
 test('Basic groups test', () => {
-  const scavenge_tool: LootTable = [
+  const crate_1: LootTable = [
     LootTableEntry('coin', 10, 50, 100, 25, 1),
     LootTableEntry(null, 4, 1, 1, 1, 1),
     LootTableEntry('wood', 5, 40, 50, 5, 2),
@@ -20,14 +20,14 @@ test('Basic groups test', () => {
     [],
     [
       { id: 'coin', quantity: 50 },
-      { id: 'wood', quantity: 45 },
+      { id: 'wood', quantity: 50 },
     ],
-    [{ id: 'wood', quantity: 45 }],
-    [{ id: 'coin', quantity: 50 }],
+    [{ id: 'wood', quantity: 50 }],
+    [{ id: 'coin', quantity: 75 }],
     [{ id: 'wood', quantity: 40 }],
   ]
   for (let result of results) {
-    let loot = GetLoot(scavenge_tool)
+    let loot = GetLoot(crate_1)
     // console.log('[')
     // for (let entry of loot) {
     //   console.log(`  {id: '${entry.id}', quantity: ${entry.quantity} },`)

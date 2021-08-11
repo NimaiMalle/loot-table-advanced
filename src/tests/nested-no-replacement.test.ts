@@ -10,7 +10,7 @@ import { rnd } from './random-table'
 
 mockRandomForEach(rnd)
 
-test('Select Without Replace', () => {
+test('Select Without Replace Nested', () => {
   const cards: LootTable = [
     LootTableEntry('ace'),
     LootTableEntry('king'),
@@ -18,33 +18,49 @@ test('Select Without Replace', () => {
     LootTableEntry('jack'),
   ]
 
+  const cards_chips: LootTable = [
+    LootTableEntry('chips', 1, 10, 50, 5, 1),
+    LootTableEntry('@cards(2)', 1, 1, 1, 1, 2),
+  ]
+
   const results: Array<Loot> = [
     [
+      { id: 'chips', quantity: 50 },
+      { id: 'king', quantity: 1 },
+      { id: 'ace', quantity: 1 },
+    ],
+    [
+      { id: 'chips', quantity: 20 },
+      { id: 'king', quantity: 1 },
       { id: 'jack', quantity: 1 },
+    ],
+    [
+      { id: 'chips', quantity: 50 },
+      { id: 'king', quantity: 1 },
+      { id: 'ace', quantity: 1 },
+    ],
+    [
+      { id: 'chips', quantity: 10 },
       { id: 'queen', quantity: 1 },
-    ],
-    [
       { id: 'king', quantity: 1 },
-      { id: 'ace', quantity: 1 },
     ],
     [
+      { id: 'chips', quantity: 50 },
       { id: 'jack', quantity: 1 },
-      { id: 'ace', quantity: 1 },
-    ],
-    [
       { id: 'king', quantity: 1 },
-      { id: 'jack', quantity: 1 },
-    ],
-    [
-      { id: 'jack', quantity: 1 },
-      { id: 'ace', quantity: 1 },
     ],
   ]
 
   for (let result of results) {
-    let loot = GetLoot(cards, 2)
+    let loot = GetLoot(cards_chips, 1, (id) => (id == 'cards' ? cards : null))
+    // let results_gen = '['
+    // for (let entry of loot) {
+    //   results_gen += `  {id: '${entry.id}', quantity: ${entry.quantity} },`
+    // }
+    // console.log(results_gen + '],')
     expect(loot.length).toBe(result.length)
     for (let i = 0; i < loot.length; i++) {
+      console.dir(loot[i])
       expect(loot[i].id).toBe(result[i].id)
       expect(loot[i].quantity).toBe(result[i].quantity)
     }
