@@ -7,7 +7,9 @@ export interface ILootTableEntry {
   group: number
 }
 
-export type LootTable = Array<Partial<ILootTableEntry>>
+export declare type LootTable = Array<Partial<ILootTableEntry>>
+
+export declare type LootTableResolver = (id: string) => LootTable | undefined
 
 export interface ILootItem {
   id: string | null
@@ -99,7 +101,7 @@ function FillInLootEntryDefaults(
 export function GetLoot(
   table: LootTable,
   count: number = 1,
-  resolver?: (id: string) => LootTable | null,
+  resolver?: LootTableResolver,
   depth = 0
 ): Loot {
   if (depth > 9) throw new Error(`Too many nested loot tables`)

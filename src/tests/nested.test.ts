@@ -22,14 +22,14 @@ test('Nested Loot Tables', () => {
     LootTableEntry('gold', 1, 15, 20, 1, 2),
   ]
 
-  function ResolveHelper(id: string): LootTable | null {
+  function ResolveHelper(id: string): LootTable | undefined {
     switch (id) {
       case 'gems':
         return gems
       case 'treasure':
         return treasure
     }
-    return null
+    return
   }
 
   const results: Array<Loot> = [

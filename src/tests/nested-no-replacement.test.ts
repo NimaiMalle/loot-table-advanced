@@ -52,7 +52,9 @@ test('Select Without Replace Nested', () => {
   ]
 
   for (let result of results) {
-    let loot = GetLoot(cards_chips, 1, (id) => (id == 'cards' ? cards : null))
+    let loot = GetLoot(cards_chips, 1, (id) =>
+      id == 'cards' ? cards : undefined
+    )
     // let results_gen = '['
     // for (let entry of loot) {
     //   results_gen += `  {id: '${entry.id}', quantity: ${entry.quantity} },`
@@ -60,7 +62,6 @@ test('Select Without Replace Nested', () => {
     // console.log(results_gen + '],')
     expect(loot.length).toBe(result.length)
     for (let i = 0; i < loot.length; i++) {
-      console.dir(loot[i])
       expect(loot[i].id).toBe(result[i].id)
       expect(loot[i].quantity).toBe(result[i].quantity)
     }
