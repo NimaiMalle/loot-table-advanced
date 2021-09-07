@@ -10,6 +10,9 @@ export interface ILootTableEntry {
 export declare type LootTable = Array<Partial<ILootTableEntry>>
 
 export declare type LootTableResolver = (id: string) => LootTable | undefined
+export declare type LootTableResolverAsync = (
+  id: string
+) => Promise<LootTable | undefined>
 
 export interface ILootItem {
   id: string | null
@@ -18,7 +21,7 @@ export interface ILootItem {
 
 export type Loot = Array<ILootItem>
 
-function AddLoot(loot: Loot, item: ILootItem): Loot {
+export function AddLoot(loot: Loot, item: ILootItem): Loot {
   const i = loot.findIndex((e) => e.id == item.id)
   if (i >= 0) loot[i].quantity += item.quantity
   else loot.push(item)
@@ -92,18 +95,20 @@ function FillInLootEntryDefaults(
   if (entry.id === undefined) entry.id = loot_defaults.id
   if (entry.weight === undefined) entry.weight = loot_defaults.weight
   if (entry.min === undefined) entry.min = loot_defaults.min
-  if (entry.max === undefined) entry.max = loot_defaults.max
+  if (entry.max === undefined)
+    entry.max = Math.max(loot_defaults.max, loot_defaults.min)
   if (entry.step === undefined) entry.step = loot_defaults.step
   if (entry.group === undefined) entry.group = loot_defaults.group
   return entry as ILootTableEntry
 }
 
-export function GetLoot(
+export async function GetLootAsync(
   table: LootTable,
   count: number = 1,
-  resolver?: LootTableResolver,
+  resolver?: LootTableResolverAsync,
   depth = 0
-): Loot {
+): Promise<Loot> {
+  if (!Array.isArray(table)) throw new Error('Not a loot table')
   if (depth > 9) throw new Error(`Too many nested loot tables`)
   if (count != 1) {
     table = CloneLootTable(table)
@@ -112,7 +117,7 @@ export function GetLoot(
   const groups = new Set()
   table.map((e) => groups.add(e.group))
   for (let pull = 0; pull < count; ++pull) {
-    for (let groupID of groups) {
+    for (const groupID of groups) {
       const entries = table
         .filter((e) => e.group === groupID)
         .map(FillInLootEntryDefaults)
@@ -125,7 +130,80 @@ export function GetLoot(
       const rand = Math.random() * totalWeight
       let entry: ILootTableEntry | null = null
       let sum = 0
-      for (let e of entries) {
+      for (const e of entries) {
+        sum += e.weight
+        if (sum > rand) {
+          entry = e
+          break
+        }
+      }
+      if (entry === null)
+        throw new Error(`No loot table row could be selected.`)
+      const range = Math.floor(
+        (entry.max - entry.min + entry.step) / entry.step
+      )
+      let quantity = entry.min + Math.floor(Math.random() * range) * entry.step
+      if (quantity > 0) {
+        if (count != 1) {
+          quantity = Math.max(quantity, entry.weight)
+          entry.weight -= quantity
+        }
+        const id = entry.id
+        if (id?.startsWith('@')) {
+          const otherInfo = ParseLootID(id.substring(1))
+          if (!otherInfo.id) throw new Error(`Unable to parse ${id}`)
+          if (!resolver) throw new Error(`No resolver for ${id}`)
+          const otherTable = await resolver(otherInfo.id)
+          if (!otherTable) throw new Error(`${id} could not be resolved`)
+          for (let i = 0; i < quantity; i++) {
+            const loot = await GetLootAsync(
+              otherTable,
+              otherInfo.count,
+              resolver,
+              ++depth
+            )
+            MergeLoot(result, loot)
+          }
+        } else {
+          if (entry.id !== null) {
+            AddLoot(result, { id: entry.id, quantity })
+          }
+        }
+      }
+    }
+  }
+  return result
+}
+
+export function GetLoot(
+  table: LootTable,
+  count: number = 1,
+  resolver?: LootTableResolver,
+  depth = 0
+): Loot {
+  if (!Array.isArray(table)) throw new Error('Not a loot table')
+  if (depth > 9) throw new Error(`Too many nested loot tables`)
+  if (count != 1) {
+    table = CloneLootTable(table)
+  }
+  const result = new Array<ILootItem>()
+  const groups = new Set()
+  table.map((e) => groups.add(e.group))
+  for (let pull = 0; pull < count; ++pull) {
+    for (const groupID of groups) {
+      const entries = table
+        .filter((e) => e.group === groupID)
+        .map(FillInLootEntryDefaults)
+      const totalWeight = entries
+        .map((e) => e.weight)
+        .reduce((a, b) => a + b, 0)
+      if (totalWeight == 0) {
+        continue
+      }
+      const rand = Math.random() * totalWeight
+      let entry: ILootTableEntry | null = null
+      let sum = 0
+      for (const e of entries) {
         sum += e.weight
         if (sum > rand) {
           entry = e

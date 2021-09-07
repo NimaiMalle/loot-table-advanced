@@ -55,8 +55,8 @@ test('Nested Loot Tables', () => {
     ],
   ]
 
-  for (let result of results) {
-    let loot = GetLoot(treasure, 1, ResolveHelper)
+  for (const result of results) {
+    const loot = GetLoot(treasure, 1, ResolveHelper)
     // console.log('[')
     // for (let entry of loot) {
     //   console.log(`  {id: '${entry.id}', quantity: ${entry.quantity} },`)

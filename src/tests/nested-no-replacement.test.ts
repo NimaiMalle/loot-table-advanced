@@ -51,8 +51,8 @@ test('Select Without Replace Nested', () => {
     ],
   ]
 
-  for (let result of results) {
-    let loot = GetLoot(cards_chips, 1, (id) =>
+  for (const result of results) {
+    const loot = GetLoot(cards_chips, 1, (id) =>
       id == 'cards' ? cards : undefined
     )
     // let results_gen = '['
