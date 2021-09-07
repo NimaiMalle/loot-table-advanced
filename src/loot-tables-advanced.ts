@@ -42,7 +42,7 @@ function isPositiveInt(value: number): boolean {
   return value >= 0 && value === Math.floor(value)
 }
 
-const rxLootTableEntryID = new RegExp('^@?([a-z0-9_]+)(\\(([0-9]+)\\))?$')
+const rxLootTableEntryID = new RegExp('^@?([a-z0-9_]+)(\\(([0-9]+)\\))?$', 'i')
 
 function ParseLootID(id: string): { id: string | null; count: number } {
   var count = 0
