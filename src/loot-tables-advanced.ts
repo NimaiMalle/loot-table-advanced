@@ -102,6 +102,8 @@ function FillInLootEntryDefaults(
   return entry as ILootTableEntry
 }
 
+const MAX_NESTED = 100
+
 export async function GetLootAsync(
   table: LootTable,
   count: number = 1,
@@ -109,7 +111,7 @@ export async function GetLootAsync(
   depth = 0
 ): Promise<Loot> {
   if (!Array.isArray(table)) throw new Error('Not a loot table')
-  if (depth > 9) throw new Error(`Too many nested loot tables`)
+  if (depth > MAX_NESTED) throw new Error(`Too many nested loot tables`)
   if (count != 1) {
     table = CloneLootTable(table)
   }
@@ -162,6 +164,7 @@ export async function GetLootAsync(
               resolver,
               ++depth
             )
+            depth--
             MergeLoot(result, loot)
           }
         } else {
@@ -182,7 +185,7 @@ export function GetLoot(
   depth = 0
 ): Loot {
   if (!Array.isArray(table)) throw new Error('Not a loot table')
-  if (depth > 9) throw new Error(`Too many nested loot tables`)
+  if (depth > MAX_NESTED) throw new Error(`Too many nested loot tables`)
   if (count != 1) {
     table = CloneLootTable(table)
   }
@@ -230,6 +233,7 @@ export function GetLoot(
           if (!otherTable) throw new Error(`${id} could not be resolved`)
           for (let i = 0; i < quantity; i++) {
             const loot = GetLoot(otherTable, otherInfo.count, resolver, ++depth)
+            depth--
             MergeLoot(result, loot)
           }
         } else {
