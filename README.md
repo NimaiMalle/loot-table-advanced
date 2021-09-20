@@ -8,9 +8,13 @@ Loot Tables are lists of items, quantities, and probabilities, used to create ra
 
 Loot Tables have an ID, and a list of entries.
 
+### Loot Table Item type
+
+The various Loot Table interfaces and functions take an optional generic type T that defaults to string. In your project, if you have an enum that defines valid item ids, you should supply that enum as your T parameter to preserve the typing throughout.
+
 ## Loot Table Entry
 
-- `ItemID` or `@TableID` : string
+- `ItemID` or `@TableID` : T extends string
 - `Min` : int - minimum quantity to produce
 - `Max` : int - maximum quantity to produce
 - `Step` : int - quantity will be in increments of this amount

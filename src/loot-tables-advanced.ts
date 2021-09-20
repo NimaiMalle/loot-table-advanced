@@ -1,5 +1,5 @@
-export interface ILootTableEntry {
-  id: string | null
+export interface ILootTableEntry<T extends string = string> {
+  id: T | null
   weight: number
   min: number
   max: number
@@ -7,21 +7,29 @@ export interface ILootTableEntry {
   group: number
 }
 
-export declare type LootTable = Array<Partial<ILootTableEntry>>
+export declare type LootTable<T extends string = string> = Array<
+  Partial<ILootTableEntry<T>>
+>
 
-export declare type LootTableResolver = (id: string) => LootTable | undefined
-export declare type LootTableResolverAsync = (
-  id: string
-) => Promise<LootTable | undefined>
+export declare type LootTableResolver<T extends string = string> = (
+  id: T
+) => LootTable | undefined
 
-export interface ILootItem {
-  id: string | null
+export declare type LootTableResolverAsync<T extends string = string> = (
+  id: T
+) => Promise<LootTable<T> | undefined>
+
+export interface ILootItem<T extends string = string> {
+  id: T | null
   quantity: number
 }
 
-export type Loot = Array<ILootItem>
+export type Loot<T extends string = string> = Array<ILootItem<T>>
 
-export function AddLoot(loot: Loot, item: ILootItem): Loot {
+export function AddLoot<T extends string = string>(
+  loot: Loot,
+  item: ILootItem
+): Loot {
   const i = loot.findIndex((e) => e.id == item.id)
   if (i >= 0) loot[i].quantity += item.quantity
   else loot.push(item)
@@ -33,8 +41,10 @@ function MergeLoot(a: Loot, b: Loot): Loot {
   return a
 }
 
-function CloneLootTable(table: LootTable): LootTable {
-  const result = JSON.parse(JSON.stringify(table)) as LootTable
+function CloneLootTable<T extends string = string>(
+  table: LootTable<T>
+): LootTable<T> {
+  const result = JSON.parse(JSON.stringify(table)) as LootTable<T>
   return result
 }
 
@@ -44,19 +54,21 @@ function isPositiveInt(value: number): boolean {
 
 const rxLootTableEntryID = new RegExp('^@?([a-z0-9_]+)(\\(([0-9]+)\\))?$', 'i')
 
-function ParseLootID(id: string): { id: string | null; count: number } {
+function ParseLootID<T extends string = string>(
+  id: string
+): { id: T | null; count: number } {
   var count = 0
-  var name: string | null = null
+  var name: T | null = null
   const matches = id.match(rxLootTableEntryID)
   if (matches) {
-    name = matches[1]
+    name = matches[1] as T
     count = matches[3] === undefined ? 1 : parseInt(matches[3])
   }
   return { id: name, count }
 }
 
-export function LootTableEntry(
-  id: string | null,
+export function LootTableEntry<T extends string = string>(
+  id: T | null,
   weight: number = 1,
   min: number = 1,
   max: number = 1,
@@ -89,33 +101,33 @@ const loot_defaults: ILootTableEntry = {
   group: 1,
 }
 
-function FillInLootEntryDefaults(
-  entry: Partial<ILootTableEntry>
-): ILootTableEntry {
-  if (entry.id === undefined) entry.id = loot_defaults.id
+function FillInLootEntryDefaults<T extends string = string>(
+  entry: Partial<ILootTableEntry<T>>
+): ILootTableEntry<T> {
+  if (entry.id === undefined) entry.id = null
   if (entry.weight === undefined) entry.weight = loot_defaults.weight
   if (entry.min === undefined) entry.min = loot_defaults.min
   if (entry.max === undefined)
     entry.max = Math.max(loot_defaults.max, loot_defaults.min)
   if (entry.step === undefined) entry.step = loot_defaults.step
   if (entry.group === undefined) entry.group = loot_defaults.group
-  return entry as ILootTableEntry
+  return entry as ILootTableEntry<T>
 }
 
 const MAX_NESTED = 100
 
-export async function GetLootAsync(
-  table: LootTable,
+export async function GetLootAsync<T extends string = string>(
+  table: LootTable<T>,
   count: number = 1,
-  resolver?: LootTableResolverAsync,
+  resolver?: LootTableResolverAsync<T>,
   depth = 0
-): Promise<Loot> {
+): Promise<Loot<T>> {
   if (!Array.isArray(table)) throw new Error('Not a loot table')
   if (depth > MAX_NESTED) throw new Error(`Too many nested loot tables`)
   if (count != 1) {
-    table = CloneLootTable(table)
+    table = CloneLootTable<T>(table)
   }
-  const result = new Array<ILootItem>()
+  const result = new Array<ILootItem<T>>()
   const groups = new Set()
   table.map((e) => groups.add(e.group))
   for (let pull = 0; pull < count; ++pull) {
@@ -130,7 +142,7 @@ export async function GetLootAsync(
         continue
       }
       const rand = Math.random() * totalWeight
-      let entry: ILootTableEntry | null = null
+      let entry: ILootTableEntry<T> | null = null
       let sum = 0
       for (const e of entries) {
         sum += e.weight
@@ -152,7 +164,7 @@ export async function GetLootAsync(
         }
         const id = entry.id
         if (id?.startsWith('@')) {
-          const otherInfo = ParseLootID(id.substring(1))
+          const otherInfo = ParseLootID<T>(id.substring(1))
           if (!otherInfo.id) throw new Error(`Unable to parse ${id}`)
           if (!resolver) throw new Error(`No resolver for ${id}`)
           const otherTable = await resolver(otherInfo.id)
