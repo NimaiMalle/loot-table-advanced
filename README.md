@@ -210,3 +210,9 @@ let loot = GetLoot(cards_chips, 1, (id) => (id == 'cards' ? cards : null))
 
 To reference another Loot Table, and specify a **count**, follow the `@id` with the count in parenthesis `(n)`, for example:
 `@cards(2)`
+
+# Summarize a Loot Table
+
+With nested loot tables, and data-driven design, it can be hard to tell what might this loot table yield. To get a flattened summary of a loot table, with just the `id`, `min`, and `max` properties, but no nested references, there is a helper function called `LootTableSummaryAsync`.
+
+Call LootTableSummaryAsync to see what the possible yields are from a loot table. It does not evaluate groups, so the results don't tell you whether it's possible to get all items at once, but for any given item, it gives a theoretical range of what might be produced.

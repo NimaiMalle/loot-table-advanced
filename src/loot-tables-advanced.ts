@@ -77,10 +77,10 @@ export function LootTableEntry<T extends string = string>(
 ): ILootTableEntry {
   if (id !== null && !rxLootTableEntryID.test(id))
     throw Error(`LootTableEntry ${id} invalid id format.`)
-  if (!isPositiveInt(min) || !isPositiveInt(max))
-    throw Error(
-      `LootTableEntry ${id} min and max must both be non-negative integers.`
-    )
+  // if (!isPositiveInt(min) || !isPositiveInt(max))
+  //   throw Error(
+  //     `LootTableEntry ${id} min and max must both be non-negative integers.`
+  //   )
   if (min > max)
     throw Error(`LootTableEntry ${id} min must be less than or equal to max.`)
   if (!isPositiveInt(step) || step == 0)
@@ -115,6 +115,55 @@ function FillInLootEntryDefaults<T extends string = string>(
 }
 
 const MAX_NESTED = 100
+
+export async function LootTableSummaryAsync<T extends string = string>(
+  table: LootTable<T>,
+  resolver?: LootTableResolverAsync<T>
+): Promise<LootTable<T>> {
+  return _LootTableSummaryAsync(table, resolver)
+}
+
+export async function _LootTableSummaryAsync<T extends string = string>(
+  table: LootTable<T>,
+  resolver?: LootTableResolverAsync<T>,
+  depth: number = 0
+): Promise<LootTable<T>> {
+  if (!Array.isArray(table)) throw new Error('Not a loot table')
+  if (depth > MAX_NESTED) throw new Error(`Too many nested loot tables`)
+  const result = CloneLootTable(table)
+  const length = result.length
+  for (let i = 0; i < length; i++) {
+    const entry = result[i]
+    const id = entry.id
+    FillInLootEntryDefaults(entry)
+    delete entry.weight
+    delete entry.step
+    delete entry.group
+    if (id?.startsWith('@')) {
+      const otherInfo = ParseLootID<T>(id.substring(1))
+      if (!otherInfo.id) throw new Error(`Unable to parse ${id}`)
+      if (!resolver) throw new Error(`No resolver for ${id}`)
+      const otherTable = await resolver(otherInfo.id)
+      if (!otherTable) throw new Error(`${id} could not be resolved`)
+      const otherFlattened = await _LootTableSummaryAsync(
+        otherTable,
+        resolver,
+        depth + 1
+      )
+      for (const otherEntry of otherFlattened) {
+        const otherId = otherEntry.id!
+        const matchingEntry = result.find((e) => e.id === otherId)
+        if (matchingEntry) {
+          matchingEntry.min! += otherEntry.min!
+          matchingEntry.max! += otherEntry.max!
+        } else {
+          result.push(otherEntry)
+        }
+      }
+    }
+  }
+  return result.filter((e) => !e.id?.startsWith('@'))
+}
 
 export async function GetLootAsync<T extends string = string>(
   table: LootTable<T>,
@@ -157,10 +206,12 @@ export async function GetLootAsync<T extends string = string>(
         (entry.max - entry.min + entry.step) / entry.step
       )
       let quantity = entry.min + Math.floor(Math.random() * range) * entry.step
-      if (quantity > 0) {
+      let absQuantity = Math.abs(quantity)
+      if (absQuantity > 0) {
         if (count != 1) {
-          quantity = Math.max(quantity, entry.weight)
-          entry.weight -= quantity
+          absQuantity = Math.max(absQuantity, entry.weight)
+          quantity = quantity < 0 ? -absQuantity : absQuantity
+          entry.weight -= absQuantity
         }
         const id = entry.id
         if (id?.startsWith('@')) {
@@ -231,10 +282,12 @@ export function GetLoot(
         (entry.max - entry.min + entry.step) / entry.step
       )
       let quantity = entry.min + Math.floor(Math.random() * range) * entry.step
-      if (quantity > 0) {
+      let absQuantity = Math.abs(quantity)
+      if (absQuantity > 0) {
         if (count != 1) {
-          quantity = Math.max(quantity, entry.weight)
-          entry.weight -= quantity
+          absQuantity = Math.max(absQuantity, entry.weight)
+          quantity = quantity < 0 ? -absQuantity : absQuantity
+          entry.weight -= absQuantity
         }
         const id = entry.id
         if (id?.startsWith('@')) {
