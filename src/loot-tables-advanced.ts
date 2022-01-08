@@ -5,6 +5,7 @@ export interface ILootTableEntry<T extends string = string> {
   max: number
   step: number
   group: number
+  transform: null | ((x: number) => number)
 }
 
 export declare type LootTable<T extends string = string> = Array<
@@ -73,7 +74,8 @@ export function LootTableEntry<T extends string = string>(
   min: number = 1,
   max: number = 1,
   step: number = 1,
-  group: number = 1
+  group: number = 1,
+  transform: null | ((x: number) => number) = null
 ): ILootTableEntry {
   if (id !== null && !rxLootTableEntryID.test(id))
     throw Error(`LootTableEntry ${id} invalid id format.`)
@@ -83,13 +85,13 @@ export function LootTableEntry<T extends string = string>(
   //   )
   if (min > max)
     throw Error(`LootTableEntry ${id} min must be less than or equal to max.`)
-  if (!isPositiveInt(step) || step == 0)
-    throw Error(`LootTableEntry ${id} step must be a positive integer.`)
+  if ((!isPositiveInt(step) || step == 0) && !Number.isNaN(step))
+    throw Error(`LootTableEntry ${id} step must be a positive integer or NaN.`)
   if (!isPositiveInt(group))
     throw Error(`LootTableEntry ${id} group must be a non-negative integer.`)
   if (!isPositiveInt(weight))
     throw Error(`LootTableEntry ${id} weight must be a non-negative integer.`)
-  return { id, min, max, step, group, weight }
+  return { id, min, max, step, group, weight, transform }
 }
 
 const loot_defaults: ILootTableEntry = {
@@ -99,6 +101,7 @@ const loot_defaults: ILootTableEntry = {
   max: 1,
   step: 1,
   group: 1,
+  transform: null,
 }
 
 function FillInLootEntryDefaults<T extends string = string>(
@@ -202,10 +205,15 @@ export async function GetLootAsync<T extends string = string>(
       }
       if (entry === null)
         throw new Error(`No loot table row could be selected.`)
-      const range = Math.floor(
-        (entry.max - entry.min + entry.step) / entry.step
-      )
-      let quantity = entry.min + Math.floor(Math.random() * range) * entry.step
+      const range = isNaN(entry.step)
+        ? entry.max - entry.min
+        : Math.floor((entry.max - entry.min + entry.step) / entry.step)
+      const rnd = entry.transform
+        ? entry.transform(Math.random())
+        : Math.random()
+      let quantity =
+        entry.min +
+        (isNaN(entry.step) ? rnd * range : Math.floor(rnd * range) * entry.step)
       let absQuantity = Math.abs(quantity)
       if (absQuantity > 0) {
         if (count != 1) {
@@ -278,10 +286,15 @@ export function GetLoot(
       }
       if (entry === null)
         throw new Error(`No loot table row could be selected.`)
-      const range = Math.floor(
-        (entry.max - entry.min + entry.step) / entry.step
-      )
-      let quantity = entry.min + Math.floor(Math.random() * range) * entry.step
+      const range = isNaN(entry.step)
+        ? entry.max - entry.min
+        : Math.floor((entry.max - entry.min + entry.step) / entry.step)
+      const rnd = entry.transform
+        ? entry.transform(Math.random())
+        : Math.random()
+      let quantity =
+        entry.min +
+        (isNaN(entry.step) ? rnd * range : Math.floor(rnd * range) * entry.step)
       let absQuantity = Math.abs(quantity)
       if (absQuantity > 0) {
         if (count != 1) {

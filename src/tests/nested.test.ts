@@ -98,8 +98,8 @@ test('Summarize Loot Tables', async () => {
     return
   }
 
-  const summary = await LootTableSummaryAsync(treasure, ResolveHelperAsync)
-  for (const entry of summary) {
-    console.log(`${entry.id}\t${entry.min}\t${entry.max}`)
-  }
+  // const summary = await LootTableSummaryAsync(treasure, ResolveHelperAsync)
+  // for (const entry of summary) {
+  //   console.log(`${entry.id}\t${entry.min}\t${entry.max}`)
+  // }
 })

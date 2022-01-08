@@ -1,14 +1,13 @@
+import { mockRandom } from 'jest-mock-random'
 import {
   GetLoot,
   Loot,
   LootTable,
   LootTableEntry,
 } from '../loot-tables-advanced'
-
-import { mockRandomForEach } from 'jest-mock-random'
 import { rnd } from './random-table'
 
-mockRandomForEach(rnd)
+mockRandom(rnd)
 
 test('Select Without Replace Nested', () => {
   const cards: LootTable = [

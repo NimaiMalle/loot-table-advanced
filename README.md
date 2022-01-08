@@ -15,11 +15,14 @@ The various Loot Table interfaces and functions take an optional generic type T 
 ## Loot Table Entry
 
 - `ItemID` or `@TableID` : T extends string
-- `Min` : int - minimum quantity to produce
-- `Max` : int - maximum quantity to produce
-- `Step` : int - quantity will be in increments of this amount
+- `Min` : number - minimum quantity to produce
+- `Max` : number - maximum quantity to produce
+- `Step` : int - quantity will be in increments of this amount, or NaN for non-integer decimal values
 - `Group` : int - entries may be grouped (see crate_1 example below)
-- `Weight` : int.- the relative probability of for this entry
+- `Weight` : int - the relative probability of for this entry
+- `Transform` : function - optional transform
+
+The optional transform function takes a number between 0.0 and 1.0 and should usually return a value between 0.0 and 1.0 as well. This can be used to do things like apply an [easing function](https://www.npmjs.com/package/bezier-easing) to the random number used to pick the value between Min and Max. The transformed value is not validated, so user beware. If you return a value below zero or above one, then you will get an output outside of your specified Min or Max.
 
 # Stupid Simple Example
 
