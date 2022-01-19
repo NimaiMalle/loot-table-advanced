@@ -216,6 +216,6 @@ To reference another Loot Table, and specify a **count**, follow the `@id` with 
 
 # Summarize a Loot Table
 
-With nested loot tables, and data-driven design, it can be hard to tell what might this loot table yield. To get a flattened summary of a loot table, with just the `id`, `min`, and `max` properties, but no nested references, there is a helper function called `LootTableSummaryAsync`.
+With nested loot tables, and data-driven design, it can be hard to tell what might a given loot table yield. To get a flattened summary of a loot table, with just the `id`, `min`, and `max` properties, but no nested references, there is a helper function called `LootTableSummaryAsync`.
 
-Call LootTableSummaryAsync to see what the possible yields are from a loot table. It does not evaluate groups, so the results don't tell you whether it's possible to get all items at once, but for any given item, it gives a theoretical range of what might be produced.
+Call LootTableSummaryAsync to see what the possible yields are from a loot table. The concept of multiple draws without replacement is not taken into account. The summarization process basically combines groups by taking the smallest min and largest max of the group, then sums mins and maxes across groups.

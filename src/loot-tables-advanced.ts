@@ -42,6 +42,12 @@ function MergeLoot(a: Loot, b: Loot): Loot {
   return a
 }
 
+function CloneEntry<T extends string = string>(
+  entry: Partial<ILootTableEntry<T>>
+): Partial<ILootTableEntry<T>> {
+  return JSON.parse(JSON.stringify(entry)) as Partial<ILootTableEntry<T>>
+}
+
 function CloneLootTable<T extends string = string>(
   table: LootTable<T>
 ): LootTable<T> {
@@ -130,16 +136,21 @@ export async function _LootTableSummaryAsync<T extends string = string>(
   table: LootTable<T>,
   resolver?: LootTableResolverAsync<T>,
   depth: number = 0,
-  multiple: number = 1
+  multiple: number = 1, // Not supported yet
+  min: number = 1,
+  max: number = 1
 ): Promise<LootTable<T>> {
   if (!Array.isArray(table)) throw new Error('Not a loot table')
   if (depth > MAX_NESTED) throw new Error(`Too many nested loot tables`)
-  const result = CloneLootTable(table)
+  let result = sum(condense(table))
   const length = result.length
   for (let i = 0; i < length; i++) {
-    const entry = result[i]
+    const entry: Partial<ILootTableEntry> &
+      Pick<ILootTableEntry, 'id' | 'min' | 'max'> = FillInLootEntryDefaults(
+      result[i]
+    )
     const id = entry.id
-    FillInLootEntryDefaults(entry)
+    const group = entry.group
     delete entry.weight
     delete entry.step
     delete entry.group
@@ -149,25 +160,85 @@ export async function _LootTableSummaryAsync<T extends string = string>(
       if (!resolver) throw new Error(`No resolver for ${id}`)
       const otherTable = await resolver(otherInfo.id)
       if (!otherTable) throw new Error(`${id} could not be resolved`)
-      const otherFlattened = await _LootTableSummaryAsync(
+      const otherSummarized = await _LootTableSummaryAsync(
         otherTable,
         resolver,
         depth + 1,
-        otherInfo.count
+        otherInfo.count,
+        entry.min,
+        entry.max
       )
-      for (const otherEntry of otherFlattened) {
-        const otherId = otherEntry.id!
-        const matchingEntry = result.find((e) => e.id === otherId)
-        if (matchingEntry) {
-          matchingEntry.min = Math.min(matchingEntry.min!, otherEntry.min!)
-          matchingEntry.max = Math.max(matchingEntry.max!, otherEntry.max!)
-        } else {
-          result.push(otherEntry)
-        }
-      }
+      otherSummarized.map((e) => (e.group = group))
+      result.push(...otherSummarized)
+      result = condense(result)
+      sum(result)
     }
   }
-  return result.filter((e) => !e.id?.startsWith('@'))
+  result.map((e) => delete e.group)
+  result = sum(result)
+  const scaled = scale(
+    result.filter((e) => !e.id?.startsWith('@')),
+    min,
+    max
+  )
+  return scaled
+}
+
+/**
+ * Combine all entries with the same id and group, making min be the smallest min, and max be the largest max
+ * @param input Loot Table
+ * @returns
+ */
+function condense<T extends string = string>(
+  input: LootTable<T>
+): LootTable<T> {
+  const result = new Array<Partial<ILootTableEntry<T>>>()
+  for (const entry of input) {
+    const existing = result.find(
+      (x) => x.id === entry.id && x.group === entry.group
+    )
+    if (existing) {
+      existing.min = Math.min(existing.min!, entry.min!)
+      existing.max = Math.max(existing.max!, entry.max!)
+    } else {
+      result.push(CloneEntry<T>(entry))
+    }
+  }
+  return result
+}
+
+/**
+ * Combine all entries with the same id, summing the mins and maxes
+ * @param input Loot Table
+ * @returns
+ */
+function sum<T extends string = string>(
+  input: LootTable<T>,
+  into?: LootTable<T>
+): LootTable<T> {
+  const result = into ?? new Array<Partial<ILootTableEntry<T>>>()
+  for (const entry of input) {
+    const existing = result.find((x) => x.id === entry.id)
+    if (existing) {
+      existing.min! += entry.min!
+      existing.max! += entry.max!
+    } else {
+      result.push(CloneEntry<T>(entry))
+    }
+  }
+  return result
+}
+
+function scale<T extends string = string>(
+  input: LootTable<T>,
+  min: number,
+  max: number
+): LootTable<T> {
+  for (const entry of input) {
+    entry.min! *= min
+    entry.max! *= max
+  }
+  return input
 }
 
 export async function GetLootAsync<T extends string = string>(
