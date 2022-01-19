@@ -129,7 +129,8 @@ export async function LootTableSummaryAsync<T extends string = string>(
 export async function _LootTableSummaryAsync<T extends string = string>(
   table: LootTable<T>,
   resolver?: LootTableResolverAsync<T>,
-  depth: number = 0
+  depth: number = 0,
+  multiple: number = 1
 ): Promise<LootTable<T>> {
   if (!Array.isArray(table)) throw new Error('Not a loot table')
   if (depth > MAX_NESTED) throw new Error(`Too many nested loot tables`)
@@ -151,14 +152,15 @@ export async function _LootTableSummaryAsync<T extends string = string>(
       const otherFlattened = await _LootTableSummaryAsync(
         otherTable,
         resolver,
-        depth + 1
+        depth + 1,
+        otherInfo.count
       )
       for (const otherEntry of otherFlattened) {
         const otherId = otherEntry.id!
         const matchingEntry = result.find((e) => e.id === otherId)
         if (matchingEntry) {
-          matchingEntry.min! += otherEntry.min!
-          matchingEntry.max! += otherEntry.max!
+          matchingEntry.min = Math.min(matchingEntry.min!, otherEntry.min!)
+          matchingEntry.max = Math.max(matchingEntry.max!, otherEntry.max!)
         } else {
           result.push(otherEntry)
         }
