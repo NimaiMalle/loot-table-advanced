@@ -12,13 +12,15 @@ export declare type LootTable<T extends string = string> = Array<
   Partial<ILootTableEntry<T>>
 >
 
-export declare type LootTableResolver<T extends string = string> = (
-  id: T
-) => LootTable | undefined
+export declare type LootTableResolver<
+  T extends string = string, // Item Id type
+  V extends string = string // Loot Table Id type
+> = (id: V) => LootTable<T> | undefined
 
-export declare type LootTableResolverAsync<T extends string = string> = (
-  id: T
-) => Promise<LootTable<T> | undefined>
+export declare type LootTableResolverAsync<
+  T extends string = string,
+  V extends string = string
+> = (id: V) => Promise<LootTable<T> | undefined>
 
 export interface ILootItem<T extends string = string> {
   id: T | null
@@ -125,16 +127,22 @@ function FillInLootEntryDefaults<T extends string = string>(
 
 const MAX_NESTED = 100
 
-export async function LootTableSummaryAsync<T extends string = string>(
+export async function LootTableSummaryAsync<
+  T extends string = string, // Item Id type
+  V extends string = string // Loot Table Id type
+>(
   table: LootTable<T>,
-  resolver?: LootTableResolverAsync<T>
+  resolver?: LootTableResolverAsync<T, V>
 ): Promise<LootTable<T>> {
   return _LootTableSummaryAsync(table, resolver)
 }
 
-export async function _LootTableSummaryAsync<T extends string = string>(
+export async function _LootTableSummaryAsync<
+  T extends string = string,
+  V extends string = string
+>(
   table: LootTable<T>,
-  resolver?: LootTableResolverAsync<T>,
+  resolver?: LootTableResolverAsync<T, V>,
   depth: number = 0,
   multiple: number = 1, // Not supported yet
   min: number = 1,
@@ -155,7 +163,7 @@ export async function _LootTableSummaryAsync<T extends string = string>(
     delete entry.step
     delete entry.group
     if (id?.startsWith('@')) {
-      const otherInfo = ParseLootID<T>(id.substring(1))
+      const otherInfo = ParseLootID<V>(id.substring(1))
       if (!otherInfo.id) throw new Error(`Unable to parse ${id}`)
       if (!resolver) throw new Error(`No resolver for ${id}`)
       const otherTable = await resolver(otherInfo.id)
@@ -241,10 +249,13 @@ function scale<T extends string = string>(
   return input
 }
 
-export async function GetLootAsync<T extends string = string>(
+export async function GetLootAsync<
+  T extends string = string, // Item Id type
+  V extends string = string // Loot Table Id type
+>(
   table: LootTable<T>,
   count: number = 1,
-  resolver?: LootTableResolverAsync<T>,
+  resolver?: LootTableResolverAsync<T, V>,
   depth = 0
 ): Promise<Loot<T>> {
   if (!Array.isArray(table)) throw new Error('Not a loot table')
@@ -296,7 +307,7 @@ export async function GetLootAsync<T extends string = string>(
         }
         const id = entry.id
         if (id?.startsWith('@')) {
-          const otherInfo = ParseLootID<T>(id.substring(1))
+          const otherInfo = ParseLootID<V>(id.substring(1))
           if (!otherInfo.id) throw new Error(`Unable to parse ${id}`)
           if (!resolver) throw new Error(`No resolver for ${id}`)
           const otherTable = await resolver(otherInfo.id)
@@ -322,18 +333,21 @@ export async function GetLootAsync<T extends string = string>(
   return result
 }
 
-export function GetLoot(
-  table: LootTable,
+export function GetLoot<
+  T extends string = string, // Item Id type
+  V extends string = string // Loot Table Id type
+>(
+  table: LootTable<T>,
   count: number = 1,
-  resolver?: LootTableResolver,
+  resolver?: LootTableResolver<T, V>,
   depth = 0
-): Loot {
+): Loot<T> {
   if (!Array.isArray(table)) throw new Error('Not a loot table')
   if (depth > MAX_NESTED) throw new Error(`Too many nested loot tables`)
   if (count != 1) {
     table = CloneLootTable(table)
   }
-  const result = new Array<ILootItem>()
+  const result = new Array<ILootItem<T>>()
   const groups = new Set()
   table.map((e) => groups.add(e.group))
   for (let pull = 0; pull < count; ++pull) {
@@ -377,7 +391,7 @@ export function GetLoot(
         }
         const id = entry.id
         if (id?.startsWith('@')) {
-          const otherInfo = ParseLootID(id.substring(1))
+          const otherInfo = ParseLootID<V>(id.substring(1))
           if (!otherInfo.id) throw new Error(`Unable to parse ${id}`)
           if (!resolver) throw new Error(`No resolver for ${id}`)
           const otherTable = resolver(otherInfo.id)

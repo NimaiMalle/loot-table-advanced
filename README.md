@@ -10,7 +10,7 @@ Loot Tables have an ID, and a list of entries.
 
 ### Loot Table Item type
 
-The various Loot Table interfaces and functions take an optional generic type T that defaults to string. In your project, if you have an enum that defines valid item ids, you should supply that enum as your T parameter to preserve the typing throughout.
+The various Loot Table interfaces and functions take an optional generic type T that defaults to string. In your project, if you have an enum that defines valid item ids, you should supply that enum as your T parameter to preserve the typing throughout. The generic type V is used if you have a custom type for loot table ids.
 
 ## Loot Table Entry
 
