@@ -35,7 +35,7 @@ export function AddLoot<T extends string = string>(
 ): Loot {
   const i = loot.findIndex((e) => e.id == item.id)
   if (i >= 0) loot[i].quantity += item.quantity
-  else loot.push(item)
+  else loot.push({ id: item.id, quantity: item.quantity })
   return loot
 }
 
