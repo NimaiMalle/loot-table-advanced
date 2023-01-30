@@ -185,6 +185,6 @@ Since a Loot Table id might contain a nested data structure, if your game or app
 For example, V1 of this library supported nested Loot Tables using an at-symbol `@` prefix convention.  If your stored data uses a convention like this, that works well for storage.  For processing, you'll need to convert the Loot Table name references with the Loot Table object before calling `GetLoot`, etc.
 
 # Summarize a Loot Table
-With nested loot tables, and data-driven design, it can be hard to tell what might a given loot table yield. To get a flattened summary of a loot table, with just the `id`, `min`, and `max` properties, but no nested references, there is a helper function called `LootTableSummaryAsync`.
+With nested loot tables, and data-driven design, it can be hard to tell what a loot table might drop. To get a flattened summary of a loot table, with just the `id`, `min`, and `max` properties, but no nested references, there is a helper function called `LootTableSummary`.
 
-Call LootTableSummaryAsync to see what the possible yields are from a loot table. The concept of multiple draws without replacement is not taken into account. The summarization process basically combines groups by taking the smallest min and largest max of the group, then sums mins and maxes across groups.
+Call LootTableSummary to see what the possible yields are from a loot table. Entry "supply" is not taken into account. The summarization process basically combines groups by taking the smallest min and largest max of the group, then sums mins and maxes across groups.
