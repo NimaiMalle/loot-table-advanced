@@ -1,6 +1,6 @@
 {
   "name": "loot-table-advanced",
-  "version": "1.4.6",
+  "version": "2.0.0",
   "description": "Loot Tables are lists of items, quantities, and probabilities, used to create random outcomes for games.  This Loot Table specification is both simple and expressive, able to power anything from random card packs to monster spawns to crate drops.",
   "main": "./dist/loot-tables-advanced.js",
   "scripts": {
@@ -32,6 +32,7 @@
     "jest": "^27.0.6",
     "jest-mock-random": "^1.1.1",
     "ts-jest": "^27.0.4",
-    "typescript": "^4.8.3"
+    "typescript": "^4.8.3",
+    "utility-types": "^3.10.0"
   }
 }

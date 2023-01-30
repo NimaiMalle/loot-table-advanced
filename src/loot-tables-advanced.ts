@@ -1,145 +1,198 @@
-export interface ILootTableEntry<
-  T extends string = string,
-  V extends number | string = number,
-  L extends Array<unknown> = LootTable<T>
-> {
-  id: T | null
-  _nested?: L
-  weight: V
-  min: V
-  max: V
-  step: V
+import { Optional, Required } from 'utility-types'
+
+type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>
+
+type LootTableEntryId<T = string> =
+  | T
+  | LootTable<T>
+  | ReferencedLootTable<T>
+  | null
+
+export interface ILootTableEntry<T = string> {
+  id: LootTableEntryId<T>
+  weight: number
+  supply: number | null
+  min: number
+  max: number
+  step: number | null
   group: number
-  transform?: null | ((x: number) => number)
 }
 
-export declare type LootTable<
-  T extends string = string,
-  V extends number | string = number
-> = Array<Partial<ILootTableEntry<T, V>>>
+export type IPartialLootTableEntry<T> = AtLeast<ILootTableEntry<T>, 'id'>
 
-export declare type LootTableResolver<
-  T extends string = string, // Item Id type
-  V extends string = string // Loot Table Id type
-> = (id: V) => LootTable<T> | undefined
+export type GetLootOptions<T> = MergeOptions<T> & CountOptions
 
-export declare type LootTableResolverAsync<
-  T extends string = string,
-  V extends string = string
-> = (id: V) => Promise<LootTable<T> | undefined>
+export type MergeOptions<T> = {
+  equals?: (a: T | null, b: T | null) => boolean
+  assign?: (a: T | null, b: T | null) => T | null
+}
 
-export interface ILootItem<T extends string = string> {
+export type CountOptions = {
+  count?: number
+}
+
+export type ReferencedLootTable<T> = {
+  lootTable: LootTable<T>
+} & Required<CountOptions, 'count'>
+
+function isReference<T>(id: LootTableEntryId<T>): id is ReferencedLootTable<T> {
+  return !!id && (id as ReferencedLootTable<T>).lootTable !== undefined
+}
+
+function isEmbedded<T>(id: LootTableEntryId<T>): id is LootTable<T> {
+  return Array.isArray(id)
+}
+
+function isNested<T>(id: LootTableEntryId<T> | undefined): boolean {
+  return !!id && (isReference(id) || isEmbedded(id))
+}
+
+function getNested<T>(
+  id: LootTableEntryId<T> | undefined
+): ReferencedLootTable<T> | undefined {
+  if (id === undefined) return undefined
+  if (isReference(id)) {
+    return id
+  } else if (isEmbedded(id)) {
+    return {
+      lootTable: id,
+      count: 1,
+    }
+  } else return undefined
+}
+
+export declare type LootTable<T = string> = Array<IPartialLootTableEntry<T>>
+
+export interface ILootItem<T = string> {
   id: T | null
   quantity: number
 }
 
-export type Loot<T extends string = string> = Array<ILootItem<T>>
+export type Loot<T = string> = Array<ILootItem<T>>
 
-export function AddLoot<TID extends string = string>(
-  loot: Loot<TID>,
-  item: ILootItem<TID>
-): Loot<TID> {
-  const i = loot.findIndex((e) => e.id == item.id)
-  if (i >= 0) loot[i].quantity += item.quantity
-  else loot.push({ id: item.id, quantity: item.quantity })
+export function AddLoot<T>(
+  loot: Loot<T>,
+  item: ILootItem<T>,
+  options?: MergeOptions<T>
+): Loot<T> {
+  const equalsFn = options?.equals ?? defaultEqualsFn
+  const assignFn = options?.assign ?? defaultAssignFn
+  const i = loot.findIndex((e) => equalsFn(e.id, item.id))
+  if (i >= 0) {
+    loot[i].id = assignFn(loot[i].id, item.id)
+    loot[i].quantity += item.quantity
+  } else loot.push({ id: item.id, quantity: item.quantity })
   return loot
 }
 
-function MergeLoot<TID extends string = string>(
-  a: Loot<TID>,
-  b: Loot<TID>
-): Loot<TID> {
-  b.forEach((e) => AddLoot(a, e))
+function MergeLoot<T>(
+  a: Loot<T>,
+  b: Loot<T>,
+  options?: MergeOptions<T>
+): Loot<T> {
+  b.forEach((e) => AddLoot(a, e, options))
   return a
 }
 
-function CloneEntry<T extends string = string>(
-  entry: Partial<ILootTableEntry<T>>
-): Partial<ILootTableEntry<T>> {
-  return JSON.parse(JSON.stringify(entry)) as Partial<ILootTableEntry<T>>
+function CloneEntry<T>(
+  entry: IPartialLootTableEntry<T>
+): IPartialLootTableEntry<T> {
+  const newEntry: IPartialLootTableEntry<T> = {
+    id: isReference(entry.id)
+      ? {
+          lootTable: CloneLootTable(entry.id.lootTable),
+          count: entry.id.count,
+        }
+      : isEmbedded(entry.id)
+      ? CloneLootTable(entry.id)
+      : entry.id,
+  }
+  if (entry.weight !== undefined) newEntry.weight = entry.weight
+  if (entry.min !== undefined) newEntry.min = entry.min
+  if (entry.max !== undefined) newEntry.max = entry.max
+  if (entry.step !== undefined) newEntry.step = entry.step
+  if (entry.group !== undefined) newEntry.group = entry.group
+  if (entry.supply !== undefined) newEntry.supply = entry.supply
+  return newEntry
 }
 
-function CloneLootTable<T extends string = string>(
-  table: LootTable<T>
-): LootTable<T> {
-  const result = JSON.parse(JSON.stringify(table)) as LootTable<T>
-  return result
+function CloneLootTable<T>(table: LootTable<T>): LootTable<T> {
+  return table.map((e) => CloneEntry(e))
 }
 
 function isPositiveInt(value: number): boolean {
   return value >= 0 && value === Math.floor(value)
 }
 
-const rxLootTableEntryID = new RegExp("^@?([a-z0-9_-]+)(\\(([0-9]+)\\))?$", "i")
-
-export function ParseLootID<T extends string = string>(
-  id: string
-): { id: T | null; count: number } {
-  let count = 0
-  let name: T | null = null
-  const matches = id.match(rxLootTableEntryID)
-  if (matches) {
-    name = matches[1] as T
-    count = matches[3] === undefined ? 1 : parseInt(matches[3])
-  }
-  return { id: name, count }
-}
-
-export function LootTableEntry<T extends string = string>(
+export function LootTableEntry<T>(
   id: T | null,
   weight: number = 1,
   min: number = 1,
   max: number = 1,
-  step: number = 1,
-  group: number = 1
-): ILootTableEntry {
-  if (id !== null && !rxLootTableEntryID.test(id))
-    throw Error(`LootTableEntry ${id} invalid id format.`)
-  // if (!isPositiveInt(min) || !isPositiveInt(max))
-  //   throw Error(
-  //     `LootTableEntry ${id} min and max must both be non-negative integers.`
-  //   )
+  step: number | null = 1,
+  group: number = 1,
+  supply: number | null = null
+): ILootTableEntry<T> {
   if (min > max)
     throw Error(`LootTableEntry ${id} min must be less than or equal to max.`)
-  if ((!isPositiveInt(step) || step == 0) && !Number.isNaN(step))
-    throw Error(`LootTableEntry ${id} step must be a positive integer or NaN.`)
+  if (
+    step !== null &&
+    (!isPositiveInt(step) || step == 0) &&
+    !Number.isNaN(step)
+  )
+    throw Error(
+      `LootTableEntry ${id} step must be a positive integer, NaN, or null.`
+    )
   if (!isPositiveInt(group))
     throw Error(`LootTableEntry ${id} group must be a non-negative integer.`)
   if (!isPositiveInt(weight))
     throw Error(`LootTableEntry ${id} weight must be a non-negative integer.`)
-  return { id, min, max, step, group, weight }
+  return { id, min, max, step, group, weight, supply }
 }
 
-type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>
-
-export function CheckLootTableEntry<T extends string = string>(
-  entry: AtLeast<ILootTableEntry<T, string | number>, "id">
-): AtLeast<ILootTableEntry<T, string | number>, "id"> {
-  if (entry.id !== null && !rxLootTableEntryID.test(entry.id))
-    throw Error(`LootTableEntry ${entry.id} invalid id format.`)
-  if (typeof entry.min === "number" && typeof entry.max === "number" && entry.min > entry.max)
-    throw Error(`LootTableEntry ${entry.id} min must be less than or equal to max.`)
-  if (typeof entry.step === "number" && (!isPositiveInt(entry.step) || entry.step == 0) && !Number.isNaN(entry.step))
-    throw Error(`LootTableEntry ${entry.id} step must be a positive integer or NaN.`)
-  if (typeof entry.group === "number" && !isPositiveInt(entry.group))
-    throw Error(`LootTableEntry ${entry.id} group must be a non-negative integer.`)
-  if (typeof entry.weight === "number" && !isPositiveInt(entry.weight))
-    throw Error(`LootTableEntry ${entry.id} weight must be a non-negative integer.`)
+export function CheckLootTableEntry<T>(
+  entry: IPartialLootTableEntry<T>
+): IPartialLootTableEntry<T> {
+  if (
+    typeof entry.min === 'number' &&
+    typeof entry.max === 'number' &&
+    entry.min > entry.max
+  )
+    throw Error(
+      `LootTableEntry ${entry.id} min must be less than or equal to max.`
+    )
+  if (
+    typeof entry.step === 'number' &&
+    (!isPositiveInt(entry.step) || entry.step == 0) &&
+    !Number.isNaN(entry.step) &&
+    entry.step !== null
+  )
+    throw Error(
+      `LootTableEntry ${entry.id} step must be a positive integer, NaN, or null.`
+    )
+  if (typeof entry.group === 'number' && !isPositiveInt(entry.group))
+    throw Error(
+      `LootTableEntry ${entry.id} group must be a non-negative integer.`
+    )
+  if (typeof entry.weight === 'number' && !isPositiveInt(entry.weight))
+    throw Error(
+      `LootTableEntry ${entry.id} weight must be a non-negative integer.`
+    )
   return entry
 }
 
 const loot_defaults: ILootTableEntry = {
   id: null,
   weight: 1,
+  supply: null,
   min: 1,
   max: 1,
   step: 1,
   group: 1,
-  transform: null,
 }
 
-function FillInLootEntryDefaults<T extends string = string>(
-  entry: Partial<ILootTableEntry<T>>
+function FillInLootEntryDefaults<T>(
+  entry: IPartialLootTableEntry<T>
 ): ILootTableEntry<T> {
   if (entry.id === undefined) entry.id = null
   if (entry.weight === undefined) entry.weight = loot_defaults.weight
@@ -148,150 +201,87 @@ function FillInLootEntryDefaults<T extends string = string>(
     entry.max = Math.max(loot_defaults.max, loot_defaults.min)
   if (entry.step === undefined) entry.step = loot_defaults.step
   if (entry.group === undefined) entry.group = loot_defaults.group
+  if (entry.supply === undefined) entry.supply = loot_defaults.supply
   return entry as ILootTableEntry<T>
 }
 
 const MAX_NESTED = 100
 
-export async function LootTableSummaryAsync<
-  T extends string = string, // Item Id type
-  TID extends string = string // Loot Table Id type
->(
+export function LootTableSummary<T>(
   table: LootTable<T>,
-  resolver?: LootTableResolverAsync<T, TID>
-): Promise<LootTable<T>> {
-  return _LootTableSummaryAsync(table, resolver)
+  options?: MergeOptions<T>
+): LootTable<T> {
+  return _LootTableSummary(table, options)
 }
 
-async function _LootTableSummaryAsync<
-  T extends string = string,
-  TID extends string = string
->(
+function _LootTableSummary<T>(
   table: LootTable<T>,
-  resolver?: LootTableResolverAsync<T, TID>,
-  depth: number = 0,
-  multiple: number = 1, // Not supported yet
-  min: number = 1,
-  max: number = 1
-): Promise<LootTable<T>> {
-  if (!Array.isArray(table)) throw new Error("Not a loot table")
-  if (depth > MAX_NESTED) throw new Error(`Too many nested loot tables`)
-  let result = sum(condense(table))
-  const length = result.length
-  for (let i = 0; i < length; i++) {
-    const entry: Partial<ILootTableEntry<T>> &
-      Pick<ILootTableEntry<T>, "id" | "min" | "max"> = FillInLootEntryDefaults(
-      result[i]
-    )
-    const group = entry.group
-    delete entry.weight
-    delete entry.step
-    delete entry.group
-    let otherTable = entry._nested
-    let otherCount = 1
-    if (entry.id?.startsWith("@")) {
-      const otherInfo = ParseLootID<TID>(entry.id.substring(1))
-      if (!otherInfo.id) throw new Error(`Unable to parse ${entry.id}`)
-      otherCount = otherInfo.count
-      if (!otherTable) {
-        if (!resolver) throw new Error(`No resolver for ${otherInfo.id}`)
-        otherTable = await resolver(otherInfo.id)
-        if (!otherTable)
-          throw new Error(`${otherInfo.id} could not be resolved`)
-      }
-    }
-    if (otherTable) {
-      const otherSummarized = await _LootTableSummaryAsync<T, TID>(
-        otherTable,
-        resolver,
-        depth + 1,
-        otherCount,
-        entry.min,
-        entry.max
-      )
-      otherSummarized.map((e) => (e.group = group))
-      result.push(...otherSummarized)
-      result = condense(result)
-      sum(result)
-    }
-  }
-  result.map((e) => delete e.group)
-  result = sum(result)
-  const scaled = scale(
-    result.filter((e) => typeof e.id === "string" && !e.id?.startsWith("@")),
-    min,
-    max
-  )
-  return scaled
-}
-
-export function LootTableSummary<
-  T extends string = string, // Item Id type
-  TID extends string = string // Loot Table Id type
->(table: LootTable<T>, resolver?: LootTableResolver<T, TID>): LootTable<T> {
-  return _LootTableSummary(table, resolver)
-}
-
-function _LootTableSummary<
-  T extends string = string,
-  TID extends string = string
->(
-  table: LootTable<T>,
-  resolver?: LootTableResolver<T, TID>,
+  options?: MergeOptions<T>,
   depth: number = 0,
   multiple: number = 1, // Not supported yet
   min: number = 1,
   max: number = 1
 ): LootTable<T> {
-  if (!Array.isArray(table)) throw new Error("Not a loot table")
+  if (!Array.isArray(table)) throw new Error('Not a loot table')
   if (depth > MAX_NESTED) throw new Error(`Too many nested loot tables`)
   let result = sum(condense(table))
   const length = result.length
   for (let i = 0; i < length; i++) {
-    const entry: Partial<ILootTableEntry<T>> &
-      Pick<ILootTableEntry, "id" | "min" | "max"> = FillInLootEntryDefaults(
-      result[i]
-    )
+    const entry = result[i] as Optional<
+      ILootTableEntry<T>,
+      'weight' | 'step' | 'group'
+    >
     const group = entry.group
     delete entry.weight
     delete entry.step
-    delete entry.group
-    let otherTable = entry._nested
-    let otherCount = 1
-    if (entry.id?.startsWith("@")) {
-      const otherInfo = ParseLootID<TID>(entry.id.substring(1))
-      if (!otherInfo.id) throw new Error(`Unable to parse ${entry.id}`)
-      otherCount = otherInfo.count
-      if (!otherTable) {
-        if (!resolver) throw new Error(`No resolver for ${otherInfo.id}`)
-        otherTable = resolver(otherInfo.id)
-        if (!otherTable)
-          throw new Error(`${otherInfo.id} could not be resolved`)
-      }
-    }
-    if (otherTable) {
-      const otherSummarized = _LootTableSummary<T, TID>(
-        otherTable,
-        resolver,
+    const nested = getNested<T>(entry.id)
+    if (nested) {
+      const otherSummarized = _LootTableSummary<T>(
+        nested.lootTable,
+        options,
         depth + 1,
-        otherCount,
+        nested.count,
         entry.min,
         entry.max
       )
       otherSummarized.map((e) => (e.group = group))
       result.push(...otherSummarized)
-      result = condense(result)
-      sum(result)
     }
   }
+  result = result.filter((e) => !isNested(e.id))
+  result = condense(result)
   result.map((e) => delete e.group)
   result = sum(result)
   const scaled = scale(
-    result.filter((e) => typeof e.id === "string" && !e.id?.startsWith("@")),
+    result.filter((e) => e.id !== null && !isNested(e.id)),
     min,
     max
   )
   return scaled
+}
+
+function equal<T>(
+  a: IPartialLootTableEntry<T>,
+  b: IPartialLootTableEntry<T>,
+  options?: Pick<MergeOptions<T>, 'equals'>
+) {
+  if (a.group !== b.group) return false
+  const equalsFn = options?.equals ?? defaultEqualsFn
+  if (a.id) {
+    if (!b.id) return false
+    if (isNested(a.id) || isNested(b.id)) return false
+    const aid = a.id as T
+    const bid = b.id as T
+    return equalsFn(aid, bid) || JSON.stringify(a.id) == JSON.stringify(b.id)
+  } else return !b.id
+}
+
+function defaultEqualsFn<T>(a: T | null, b: T | null) {
+  return a === b
+}
+
+function defaultAssignFn<T>(a: T | null, _: T | null) {
+  return a
 }
 
 /**
@@ -299,15 +289,17 @@ function _LootTableSummary<
  * @param input Loot Table
  * @returns
  */
-function condense<T extends string = string>(
-  input: LootTable<T>
+function condense<T>(
+  input: LootTable<T>,
+  options?: MergeOptions<T>
 ): LootTable<T> {
-  const result = new Array<Partial<ILootTableEntry<T>>>()
+  const assignFn = options?.assign ?? defaultAssignFn
+  const result = new Array<IPartialLootTableEntry<T>>()
   for (const entry of input) {
-    const existing = result.find(
-      (x) => x.id === entry.id && x.group === entry.group
-    )
+    FillInLootEntryDefaults(entry)
+    const existing = result.find((x) => equal(x, entry, options))
     if (existing) {
+      existing.id = assignFn(existing.id as T | null, entry.id as T | null)
       existing.min = Math.min(existing.min!, entry.min!)
       existing.max = Math.max(existing.max!, entry.max!)
     } else {
@@ -318,18 +310,22 @@ function condense<T extends string = string>(
 }
 
 /**
- * Combine all entries with the same id, summing the mins and maxes
+ * Combine all entries with the same id and group, summing the mins and maxes
  * @param input Loot Table
  * @returns
  */
-function sum<T extends string = string>(
+function sum<T>(
   input: LootTable<T>,
-  into?: LootTable<T>
+  into?: LootTable<T>,
+  options?: MergeOptions<T>
 ): LootTable<T> {
-  const result = into ?? new Array<Partial<ILootTableEntry<T>>>()
+  const assignFn = options?.assign ?? defaultAssignFn
+  const result = into ?? new Array<IPartialLootTableEntry<T>>()
   for (const entry of input) {
-    const existing = result.find((x) => x.id === entry.id)
+    FillInLootEntryDefaults(entry)
+    const existing = result.find((x) => equal(x, entry, options))
     if (existing) {
+      existing.id = assignFn(existing.id as T | null, entry.id as T | null)
       existing.min! += entry.min!
       existing.max! += entry.max!
     } else {
@@ -339,11 +335,7 @@ function sum<T extends string = string>(
   return result
 }
 
-function scale<T extends string = string>(
-  input: LootTable<T>,
-  min: number,
-  max: number
-): LootTable<T> {
+function scale<T>(input: LootTable<T>, min: number, max: number): LootTable<T> {
   for (const entry of input) {
     entry.min! *= min
     entry.max! *= max
@@ -351,28 +343,63 @@ function scale<T extends string = string>(
   return input
 }
 
-export async function GetLootAsync<
-  T extends string = string, // Item Id type
-  TID extends string = string // Loot Table Id type
->(
+function isLimitedSupply(table: LootTable<any>) {
+  if (
+    table.some(
+      (e) =>
+        e.supply !== undefined && e.supply !== null && !Number.isNaN(e.supply)
+    )
+  ) {
+    return true
+  }
+  for (const entry of table) {
+    if (isEmbedded(entry.id)) {
+      if (isLimitedSupply(entry.id)) {
+        return true
+      }
+    } else if (isReference(entry.id)) {
+      if (isLimitedSupply(entry.id.lootTable)) {
+        return true
+      }
+    }
+  }
+}
+
+export function GetLoot<T>(
   table: LootTable<T>,
-  count: number = 1,
-  resolver?: LootTableResolverAsync<T, TID>,
-  depth = 0
-): Promise<Loot<T>> {
-  if (!Array.isArray(table)) throw new Error("Not a loot table")
+  options?: GetLootOptions<T>
+): Loot<T> {
+  return _GetLoot(table, options)
+}
+
+function _GetLoot<T>(
+  table: LootTable<T>,
+  options?: GetLootOptions<T>,
+  depth: number = 0
+): Loot<T> {
+  if (!Array.isArray(table)) throw new Error('Not a loot table')
   if (depth > MAX_NESTED) throw new Error(`Too many nested loot tables`)
-  if (count != 1) {
-    table = CloneLootTable<T>(table)
+  const count = options?.count ?? 1
+  if (isLimitedSupply(table)) {
+    table = CloneLootTable(table)
   }
   const result = new Array<ILootItem<T>>()
   const groups = new Set()
-  table.map((e) => groups.add(e.group))
+  table.map((e) => {
+    FillInLootEntryDefaults(e)
+    groups.add(e.group)
+  })
+  const allEntries = table as Array<ILootTableEntry<T>>
   for (let pull = 0; pull < count; ++pull) {
     for (const groupID of groups) {
-      const entries = table
-        .filter((e) => e.group === groupID)
-        .map(FillInLootEntryDefaults)
+      const entries = allEntries.filter(
+        (e) =>
+          e.group === groupID &&
+          (e.supply === undefined ||
+            e.supply === null ||
+            Number.isNaN(e.supply) ||
+            e.supply > 0)
+      )
       const totalWeight = entries
         .map((e) => e.weight)
         .reduce((a, b) => a + b, 0)
@@ -391,135 +418,36 @@ export async function GetLootAsync<
       }
       if (entry === null)
         throw new Error(`No loot table row could be selected.`)
-      const range = isNaN(entry.step)
-        ? entry.max - entry.min
-        : Math.floor((entry.max - entry.min + entry.step) / entry.step)
-      const rnd = entry.transform
-        ? entry.transform(Math.random())
-        : Math.random()
+      const range =
+        entry.step === null || Number.isNaN(entry.step)
+          ? entry.max - entry.min
+          : Math.floor((entry.max - entry.min + entry.step) / entry.step)
+      const rnd = Math.random()
       let quantity =
         entry.min +
-        (isNaN(entry.step) ? rnd * range : Math.floor(rnd * range) * entry.step)
-      let absQuantity = Math.abs(quantity)
-      if (absQuantity > 0) {
-        if (count != 1) {
-          absQuantity = Math.max(absQuantity, entry.weight)
-          quantity = quantity < 0 ? -absQuantity : absQuantity
-          entry.weight -= absQuantity
+        (entry.step === null || Number.isNaN(entry.step)
+          ? rnd * range
+          : Math.floor(rnd * range) * entry.step)
+      if (quantity !== 0) {
+        if (
+          entry.supply !== undefined &&
+          entry.supply !== null &&
+          !Number.isNaN(entry.supply)
+        ) {
+          if (quantity > 0)
+            quantity = quantity > entry.supply ? entry.supply : quantity
+          entry.supply -= quantity
         }
-        let otherTable = entry._nested
-        let otherCount = 1
-        if (entry.id?.startsWith("@")) {
-          const otherInfo = ParseLootID<TID>(entry.id.substring(1))
-          otherCount = otherInfo.count
-          if (!otherInfo.id) throw new Error(`Unable to parse ${entry.id}`)
-          if (!otherTable) {
-            if (!resolver) throw new Error(`No resolver for ${otherInfo.id}`)
-            otherTable = await resolver(otherInfo.id)
-            if (!otherTable)
-              throw new Error(`${otherInfo.id} could not be resolved`)
-          }
-        }
-        if (otherTable) {
+        const nested = getNested(entry.id)
+        if (nested) {
           for (let i = 0; i < quantity; i++) {
-            const loot = await GetLootAsync(
-              otherTable,
-              otherCount,
-              resolver,
-              ++depth
-            )
+            const loot = _GetLoot(nested.lootTable, nested, ++depth)
             depth--
-            MergeLoot(result, loot)
+            MergeLoot(result, loot, options)
           }
         } else {
           if (entry.id !== null) {
-            AddLoot<T>(result, { id: entry.id as T, quantity })
-          }
-        }
-      }
-    }
-  }
-  return result
-}
-
-export function GetLoot<
-  T extends string = string, // Item Id type
-  TID extends string = string // Loot Table Id type
->(
-  table: LootTable<T>,
-  count: number = 1,
-  resolver?: LootTableResolver<T, TID>,
-  depth = 0
-): Loot<T> {
-  if (!Array.isArray(table)) throw new Error("Not a loot table")
-  if (depth > MAX_NESTED) throw new Error(`Too many nested loot tables`)
-  if (count != 1) {
-    table = CloneLootTable(table)
-  }
-  const result = new Array<ILootItem<T>>()
-  const groups = new Set()
-  table.map((e) => groups.add(e.group))
-  for (let pull = 0; pull < count; ++pull) {
-    for (const groupID of groups) {
-      const entries = table
-        .filter((e) => e.group === groupID)
-        .map(FillInLootEntryDefaults)
-      const totalWeight = entries
-        .map((e) => e.weight)
-        .reduce((a, b) => a + b, 0)
-      if (totalWeight == 0) {
-        continue
-      }
-      const rand = Math.random() * totalWeight
-      let entry: ILootTableEntry | null = null
-      let sum = 0
-      for (const e of entries) {
-        sum += e.weight
-        if (sum > rand) {
-          entry = e
-          break
-        }
-      }
-      if (entry === null)
-        throw new Error(`No loot table row could be selected.`)
-      const range = isNaN(entry.step)
-        ? entry.max - entry.min
-        : Math.floor((entry.max - entry.min + entry.step) / entry.step)
-      const rnd = entry.transform
-        ? entry.transform(Math.random())
-        : Math.random()
-      let quantity =
-        entry.min +
-        (isNaN(entry.step) ? rnd * range : Math.floor(rnd * range) * entry.step)
-      let absQuantity = Math.abs(quantity)
-      if (absQuantity > 0) {
-        if (count != 1) {
-          absQuantity = Math.max(absQuantity, entry.weight)
-          quantity = quantity < 0 ? -absQuantity : absQuantity
-          entry.weight -= absQuantity
-        }
-        let otherTable = entry._nested
-        let otherCount = 1
-        if (entry.id?.startsWith("@")) {
-          const otherInfo = ParseLootID<TID>(entry.id.substring(1))
-          otherCount = otherInfo.count
-          if (!otherInfo.id) throw new Error(`Unable to parse ${entry.id}`)
-          if (!otherTable) {
-            if (!resolver) throw new Error(`No resolver for ${otherInfo.id}`)
-            otherTable = resolver(otherInfo.id)
-            if (!otherTable)
-              throw new Error(`${otherInfo.id} could not be resolved`)
-          }
-        }
-        if (otherTable) {
-          for (let i = 0; i < quantity; i++) {
-            const loot = GetLoot(otherTable, otherCount, resolver, ++depth)
-            depth--
-            MergeLoot(result, loot)
-          }
-        } else {
-          if (entry.id !== null) {
-            AddLoot(result, { id: entry.id as T, quantity })
+            AddLoot(result, { id: entry.id as T, quantity }, options)
           }
         }
       }

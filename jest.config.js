@@ -7,6 +7,7 @@ const config = {
   testMatch: ['**/*.test.ts'],
   transform: { '^.+\\.(ts|tsx)$': 'ts-jest' },
   timers: 'modern',
+  setupFilesAfterEnv: ["./jest.console.config.js"]
 }
 
 module.exports = config
