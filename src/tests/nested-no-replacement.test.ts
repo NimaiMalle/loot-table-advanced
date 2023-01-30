@@ -3,7 +3,7 @@ import {
   GetLoot,
   Loot,
   LootTable,
-  LootTableEntry
+  LootTableEntry,
 } from '../loot-tables-advanced'
 import { rnd } from './random-table'
 
@@ -18,8 +18,8 @@ test('Select Without Replace Nested', () => {
   ]
 
   const cards_chips: LootTable = [
-    {group:1, id:'chips', min:10, max:50, step:5},
-    {group:2, id:{lootTable: cards, count: 2}},
+    { group: 1, id: 'chips', min: 10, max: 50, step: 5 },
+    { group: 2, id: { lootTable: cards, count: 2 } },
   ]
 
   const results: Array<Loot> = [

@@ -11,15 +11,15 @@ mockRandomForEach(rnd)
 
 test('Nested Loot Tables', () => {
   const gems: LootTable = [
-    {group:1, id:'pearl', min:5, max:10},
-    {group:1, id:'garnet', min:3, max:12},
-    {group:1, id:'ruby', min:4, max:9},
-    {group:1, id:'sapphire', max:2},
+    { group: 1, id: 'pearl', min: 5, max: 10 },
+    { group: 1, id: 'garnet', min: 3, max: 12 },
+    { group: 1, id: 'ruby', min: 4, max: 9 },
+    { group: 1, id: 'sapphire', max: 2 },
   ]
 
   const treasure: LootTable = [
-    {group:1, id:gems, min:0, max:2},
-    {group:2, id:'gold', min:15, max:20},
+    { group: 1, id: gems, min: 0, max: 2 },
+    { group: 2, id: 'gold', min: 15, max: 20 },
   ]
 
   const results: Array<Loot> = [
@@ -62,15 +62,15 @@ test('Nested Loot Tables', () => {
 
 test('Nested Loot Tables 2', () => {
   const gems: LootTable = [
-    {group:1, id:'pearl', min:5, max:10},
-    {group:1, id:'garnet', min:3, max:12},
-    {group:1, id:'ruby', min:4, max:9},
-    {group:1, id:'sapphire', max:2},
+    { group: 1, id: 'pearl', min: 5, max: 10 },
+    { group: 1, id: 'garnet', min: 3, max: 12 },
+    { group: 1, id: 'ruby', min: 4, max: 9 },
+    { group: 1, id: 'sapphire', max: 2 },
   ]
 
   const treasure: LootTable = [
-    {group:1, id:{ lootTable: gems, count: 1 }, min:0, max:2},
-    {group:2, id:'gold', min:15, max:20},
+    { group: 1, id: { lootTable: gems, count: 1 }, min: 0, max: 2 },
+    { group: 2, id: 'gold', min: 15, max: 20 },
   ]
 
   const results: Array<Loot> = [
@@ -112,17 +112,17 @@ test('Nested Loot Tables 2', () => {
 })
 test.skip('Summarize Loot Tables', async () => {
   const gems: LootTable = [
-    {group:1, id:'pearl', min:5, max:10},
-    {group:1, id:'garnet', min:3, max:12},
-    {group:1, id:'ruby', min:4, max:9},
-    {group:1, id:'sapphire', max:2},
-    {group:1, id:'gold', min:0},
+    { group: 1, id: 'pearl', min: 5, max: 10 },
+    { group: 1, id: 'garnet', min: 3, max: 12 },
+    { group: 1, id: 'ruby', min: 4, max: 9 },
+    { group: 1, id: 'sapphire', max: 2 },
+    { group: 1, id: 'gold', min: 0 },
   ]
 
   const treasure: LootTable = [
-    {group:1, id:null},
-    {group:1, id:gems, min:0, max:2},
-    {group:2, id:'gold', min:15, max:20},
+    { group: 1, id: null },
+    { group: 1, id: gems, min: 0, max: 2 },
+    { group: 2, id: 'gold', min: 15, max: 20 },
   ]
 
   // const summary = await LootTableSummaryAsync(treasure, ResolveHelperAsync)

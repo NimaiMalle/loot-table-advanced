@@ -42,7 +42,7 @@ test('Select Without Replace', () => {
   ]
 
   for (const result of results) {
-    const loot = GetLoot(cards, {count: 2})
+    const loot = GetLoot(cards, { count: 2 })
     expect(loot.length).toBe(result.length)
     for (let i = 0; i < loot.length; i++) {
       expect(loot[i].id).toBe(result[i].id)

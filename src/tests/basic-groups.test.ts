@@ -11,10 +11,10 @@ mockRandomForEach(rnd)
 
 test('Basic groups test', () => {
   const crate_1: LootTable = [
-    {group:1, id:'coin', weight:10, min:50, max:100, step:25},
-    {group:1, id: null, weight:4},
-    {group:2, id:'wood', weight:5, min:40, max:50, step:5},
-    {group:2, id: null, weight:5},
+    { group: 1, id: 'coin', weight: 10, min: 50, max: 100, step: 25 },
+    { group: 1, id: null, weight: 4 },
+    { group: 2, id: 'wood', weight: 5, min: 40, max: 50, step: 5 },
+    { group: 2, id: null, weight: 5 },
   ]
   const results: Array<Loot> = [
     [],
