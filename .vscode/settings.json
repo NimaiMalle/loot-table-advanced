@@ -1,4 +1,5 @@
 {
   "eslint.lintTask.enable": true,
-  "prettier.semi": false
+  "prettier.semi": false,
+  "prettier.singleQuote": true
 }

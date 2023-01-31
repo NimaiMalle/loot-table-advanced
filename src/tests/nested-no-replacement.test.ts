@@ -11,15 +11,15 @@ mockRandom(rnd)
 
 test('Select Without Replace Nested', () => {
   const cards: LootTable = [
-    LootTableEntry('ace'),
-    LootTableEntry('king'),
-    LootTableEntry('queen'),
-    LootTableEntry('jack'),
+    { id: 'ace', supply: 1 },
+    { id: 'king', supply: 1 },
+    { id: 'queen', supply: 1 },
+    { id: 'jack', supply: 1 },
   ]
 
   const cards_chips: LootTable = [
-    LootTableEntry('chips', 1, 10, 50, 5, 1),
-    LootTableEntry('@cards(2)', 1, 1, 1, 1, 2),
+    { group: 1, id: 'chips', min: 10, max: 50, step: 5 },
+    { group: 2, id: { lootTable: cards, count: 2 } },
   ]
 
   const results: Array<Loot> = [
@@ -51,9 +51,7 @@ test('Select Without Replace Nested', () => {
   ]
 
   for (const result of results) {
-    const loot = GetLoot(cards_chips, 1, (id) =>
-      id == 'cards' ? cards : undefined
-    )
+    const loot = GetLoot(cards_chips)
     // let results_gen = '['
     // for (let entry of loot) {
     //   results_gen += `  {id: '${entry.id}', quantity: ${entry.quantity} },`

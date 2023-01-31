@@ -12,10 +12,10 @@ mockRandomForEach(rnd)
 
 test('Select Without Replace', () => {
   const cards: LootTable = [
-    LootTableEntry('ace'),
-    LootTableEntry('king'),
-    LootTableEntry('queen'),
-    LootTableEntry('jack'),
+    { id: 'ace', supply: 1 },
+    { id: 'king', supply: 1 },
+    { id: 'queen', supply: 1 },
+    { id: 'jack', supply: 1 },
   ]
 
   const results: Array<Loot> = [
@@ -42,7 +42,7 @@ test('Select Without Replace', () => {
   ]
 
   for (const result of results) {
-    const loot = GetLoot(cards, 2)
+    const loot = GetLoot(cards, { count: 2 })
     expect(loot.length).toBe(result.length)
     for (let i = 0; i < loot.length; i++) {
       expect(loot[i].id).toBe(result[i].id)
